@@ -1,3 +1,8 @@
+/* eslint-disable no-console */
+'use strict'
+
+import { game } from './game.js'
+
 function showMessage (m) {
   console.log(m)
 }
@@ -24,6 +29,9 @@ document.querySelector('button').addEventListener('click', function (e) {
   }
   ws.onopen = function() {
     showMessage('WebSocket connection established')
+    document.querySelector(".startup").classList.add('hidden')
+    document.querySelector(".gameCanvas").classList.remove('hidden')
+    game.start()
   }
   ws.onclose = function() {
     showMessage('WebSocket connection closed')
