@@ -1,5 +1,7 @@
 "use strict"
 
+window.editMode = true
+
 import { editor } from './editor.js'
 
 const storageKey = 'github.com/mgatland/flap/map'
@@ -8,6 +10,10 @@ const player = {
   pos: { x: 16, y: 44 },
   vel: { x: 0, y: 0 },
   facingLeft: false
+}
+
+const camera = {
+  pos: {x: player.pos.x, y: player.pos.y}
 }
 
 const maxXVel = 2
@@ -23,9 +29,11 @@ let spriteImage
 let savedMap = localStorage.getItem(storageKey)
 let world = savedMap ? JSON.parse(savedMap) : {}
 if (savedMap) {
+  world.map = editor.rleDecode(world.map)
+  console.log(world.map)
   console.log('Loading map from local storage. This is only for development use.')
 } else {
-  world = {width: 30, height: 30, map: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10]}
+  world = {width: 10, height: 10, map: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10]}
 }
 
 
@@ -69,8 +77,10 @@ function drawPlayer() {
 function drawSprite (index, x, y, flipped = false) {
   const width = 8
   const height = 8
-  x = Math.floor(x * scale)
-  y = Math.floor(y * scale)
+  x = Math.floor((x - camera.pos.x) * scale)
+  y = Math.floor((y - camera.pos.y) * scale)
+  x += Math.floor(canvas.width / 2)
+  y += Math.floor(canvas.height / 2)
   ctx.translate(x, y)
   if (flipped) ctx.scale(-1, 1)
 
@@ -135,6 +145,9 @@ function updatePlayer () {
     player.pos.y = clearY + tileSize / 2
     player.vel.y = 0
   }
+
+  camera.pos.x = player.pos.x
+  camera.pos.y = player.pos.y
 }
 
 export const game = {

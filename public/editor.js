@@ -3,7 +3,7 @@
 let storageKey = 'temp'
 let tileSize
 let player
-let rooms
+let world
 
 function rleEncode (level) {
   const out = []
@@ -13,7 +13,7 @@ function rleEncode (level) {
     if (val === prev) {
       amount++
     } else {
-      if (prev != null) {
+      if (prev !== null) {
         out.push(prev)
         out.push(amount)
       }
@@ -42,22 +42,26 @@ function rleDecode (levelData) {
   return level
 }
 
-function saveLevelString (rooms) {
-  const rleRooms = {}
-  rleRooms.map = rleEncode(rooms.map)
-/*  const dataEl = document.querySelector('.levelData')
-  const dataAsString = JSON.stringify(rleRooms)
+function saveLevelString (world) {
+  const rleWorld = {... world}
+  rleWorld.map = rleEncode(world.map)
+  const dataAsString = JSON.stringify(rleWorld)
+  /*  const dataEl = document.querySelector('.levelData')
   dataEl.innerText = dataAsString */
   localStorage.setItem(storageKey, dataAsString)
+  console.log('saved as')
+  console.log(rleWorld.map)
+  console.log(rleDecode(rleWorld.map))
 }
 
 let brush = 1
 
 export const editor = {
-  startEditor: function startEditor (canvas, scale, rooms, newTileSize, newPlayer, newStorageKey) {
+  startEditor: function startEditor (canvas, scale, newWorld, newTileSize, newPlayer, newStorageKey) {
     storageKey = newStorageKey
     player = newPlayer
     tileSize = newTileSize
+    world = newWorld
     function getMouseXYFromEvent (e) {
       const x = event.offsetX * canvas.width / canvas.offsetWidth / scale
       const y = event.offsetY * canvas.height / canvas.offsetHeight / scale
@@ -68,14 +72,14 @@ export const editor = {
       if (!window.editMode) return
       const pos = getMouseXYFromEvent(e)
       const tile = { x: Math.floor(pos.x / tileSize), y: Math.floor(pos.y / tileSize) }
-      const i = tile.x + tile.y * levelWidth
+      const i = tile.x + tile.y * world.width
       if (e.buttons === 1) {
-        rooms.map[i] = brush
-        saveLevelString(rooms)
+        world.map[i] = brush
+        saveLevelString(world)
       }
       if (e.buttons === 2) {
-        rooms.map[i] = 0
-        saveLevelString(rooms)
+        world.map[i] = 0
+        saveLevelString(world)
       }
     }
 

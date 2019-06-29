@@ -12,12 +12,12 @@ async function getPlayerCount () {
 }
 
 async function load () {
-  document.querySelector("#playerCount").textContent = await getPlayerCount()
+  console.log('player count: ' + await getPlayerCount())
 }
 
 let ws
 
-document.querySelector('button').addEventListener('click', function (e) {
+function connect () {
   if (ws) {
     ws.onerror = ws.onopen = ws.onclose = null
     ws.close()
@@ -29,8 +29,6 @@ document.querySelector('button').addEventListener('click', function (e) {
   }
   ws.onopen = function() {
     showMessage('WebSocket connection established')
-    document.querySelector(".startup").classList.add('hidden')
-    document.querySelector(".gameCanvas").classList.remove('hidden')
     game.start()
   }
   ws.onclose = function() {
@@ -39,6 +37,7 @@ document.querySelector('button').addEventListener('click', function (e) {
   ws.onmessage = function (msg) {
     console.log(msg.data)
   }
-})
+} 
 
 load()
+connect()
