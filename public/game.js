@@ -21,11 +21,11 @@ let ctx
 let spriteImage
 
 let savedMap = localStorage.getItem(storageKey)
-let roomSrc = savedMap ? JSON.parse(savedMap) : {}
+let world = savedMap ? JSON.parse(savedMap) : {}
 if (savedMap) {
   console.log('Loading map from local storage. This is only for development use.')
 } else {
-  roomSrc = {}
+  world = {width: 30, height: 30, map: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10]}
 }
 
 
@@ -44,7 +44,7 @@ function start () {
 }
 
 function loaded () {
-  editor.startEditor(canvas, scale, roomSrc, tileSize, player, storageKey)
+  editor.startEditor(canvas, scale, world, tileSize, player, storageKey)
   tick()
 }
 
@@ -58,7 +58,7 @@ function tick () {
 
 function draw () {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  //drawLevel()
+  drawLevel()
   drawPlayer()
 }
 
@@ -85,60 +85,56 @@ function drawSprite (index, x, y, flipped = false) {
   ctx.translate(-x, -y)
 }
 
-/*function drawLevel () {
+function drawLevel () {
+  const level = world.map
   for (let i = 0; i < level.length; i++) {
-    const x = (i % levelWidth) + 0.5
-    const y = Math.floor(i / levelWidth) + 0.5
+    const x = (i % world.width) + 0.5
+    const y = Math.floor(i / world.width) + 0.5
     const sprite = level[i]
-    if (sprite === partyPlaceholder && !player.cheatMode) {
-      partyPos.push({ x, y })
-    } else {
-      drawSprite(sprite, x * tileSize, y * tileSize)
-    }
+    drawSprite(sprite, x * tileSize, y * tileSize)
   }
-}*/
+}
 
 function updatePlayer () {
-    if (keys.right && player.vel.x < maxXVel) player.vel.x += xAccel
-    else if (keys.left && player.vel.x > -maxXVel) player.vel.x -= xAccel
-    else if (!keys.left && player.vel.x < 0 && isGrounded(player)) player.vel.x += Math.min(-player.vel.x, xDecel)
-    else if (!keys.right && player.vel.x > 0 && isGrounded(player)) player.vel.x -= Math.min(player.vel.x, xDecel)
+  if (keys.right && player.vel.x < maxXVel) player.vel.x += xAccel
+  else if (keys.left && player.vel.x > -maxXVel) player.vel.x -= xAccel
+  else if (!keys.left && player.vel.x < 0 && isGrounded(player)) player.vel.x += Math.min(-player.vel.x, xDecel)
+  else if (!keys.right && player.vel.x > 0 && isGrounded(player)) player.vel.x -= Math.min(player.vel.x, xDecel)
 
-    if (keys.left) player.facingLeft = true
-    if (keys.right) player.facingLeft = false
+  if (keys.left) player.facingLeft = true
+  if (keys.right) player.facingLeft = false
 
-    // check collisions x
-    player.pos.x += player.vel.x
+  // check collisions x
+  player.pos.x += player.vel.x
 
-    /*const collidingTile = getCollidingTiles(player.pos)
-    if (collidingTile !== null) {
-      const clearTileIndex = getIndexFromPixels(collidingTile.x, collidingTile.y) +
-        (player.vel.x < 0 ? 1 : -1) // move player one tile left or right
-      const { x: clearX } = getPixelsFromIndex(clearTileIndex)
-      player.pos.x = clearX + tileSize / 2
-      player.vel.x = 0
-    }*/
+  const collidingTile = getCollidingTiles(player.pos)
+  if (collidingTile !== null) {
+    const clearTileIndex = getIndexFromPixels(collidingTile.x, collidingTile.y) +
+      (player.vel.x < 0 ? 1 : -1) // move player one tile left or right
+    const { x: clearX } = getPixelsFromIndex(clearTileIndex)
+    player.pos.x = clearX + tileSize / 2
+    player.vel.x = 0
+  }
 
-    if (keys.flap) {
-      let flapSpeed = -1
-      player.vel.y = Math.min(player.vel.y, 0)
-      player.vel.y += flapSpeed
-    }
-    player.vel.y += 0.04
+  if (keys.flap) {
+    let flapSpeed = -1
+    player.vel.y = Math.min(player.vel.y, 0)
+    player.vel.y += flapSpeed
+  }
+  player.vel.y += 0.04
 
-    // check collisions y
-    player.pos.y += player.vel.y
-    /*
+  // check collisions y
+  player.pos.y += player.vel.y
+  
 
-    const collidingTileY = getCollidingTiles(player.pos)
-    if (collidingTileY !== null) {
-      const clearTileIndex = getIndexFromPixels(collidingTileY.x, collidingTileY.y) +
-        (player.vel.y < 0 ? levelWidth : -levelWidth) // move player one tile up or down
-      const { y: clearY } = getPixelsFromIndex(clearTileIndex)
-      player.pos.y = clearY + tileSize / 2
-      player.vel.y = 0
-    }
-  }*/
+  const collidingTileY = getCollidingTiles(player.pos)
+  if (collidingTileY !== null) {
+    const clearTileIndex = getIndexFromPixels(collidingTileY.x, collidingTileY.y) +
+      (player.vel.y < 0 ? world.width : -world.width) // move player one tile up or down
+    const { y: clearY } = getPixelsFromIndex(clearTileIndex)
+    player.pos.y = clearY + tileSize / 2
+    player.vel.y = 0
+  }
 }
 
 export const game = {
@@ -188,6 +184,35 @@ window.addEventListener('keyup', function (e) {
   switchKey(e.key, false)
 })
 
-function isGrounded () {
-  return false
+function getIndexFromPixels (x, y) {
+  if (x < 0 || y < 0 || x >= world.width * tileSize || y >= world.height * tileSize) return -1
+  return Math.floor((y / tileSize)) * world.width + Math.floor((x / tileSize))
+}
+
+function getPixelsFromIndex (i) {
+  return { x: (i % world.width) * tileSize, y: Math.floor(i / world.width) * tileSize }
+}
+
+function isGrounded (ent) {
+  return !!getCollidingTiles({ x: ent.pos.x, y: ent.pos.y + 0.1 })
+}
+
+function getCollidingTiles (pos) {
+  const { x, y } = pos
+  const halfTile = tileSize / 2
+  const tilesToCheck = [
+    [ -halfTile, -halfTile, 'topLeft' ],
+    [ halfTile - 0.001, -halfTile, 'topRight' ],
+    [ -halfTile, halfTile - 0.001, 'bottomLeft' ],
+    [ halfTile - 0.001, halfTile - 0.001, 'bottomRight' ]
+  ]
+  for (const [xOffset, yOffset] of tilesToCheck) {
+    const tileX = Math.floor(x + xOffset)
+    const tileY = Math.floor(y + yOffset)
+    const tileIndex = getIndexFromPixels(tileX, tileY)
+    if (world.map[tileIndex] === 1) {
+      return { x: tileX, y: tileY }
+    }
+  }
+  return null
 }
