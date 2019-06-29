@@ -1,0 +1,5 @@
+1. display level geometry
+2. level editor
+3. collisions with player
+4. camera follows the player
+5. see other players

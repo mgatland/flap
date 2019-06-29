@@ -1,5 +1,9 @@
 "use strict"
 
+import { editor } from './editor.js'
+
+const storageKey = 'github.com/mgatland/flap/map'
+
 const player = {
   pos: { x: 16, y: 44 },
   vel: { x: 0, y: 0 },
@@ -11,9 +15,19 @@ const xAccel = 0.1
 const xDecel = 0.05
 
 const scale = 8
+const tileSize = 8
 let canvas
 let ctx
 let spriteImage
+
+let savedMap = localStorage.getItem(storageKey)
+let roomSrc = savedMap ? JSON.parse(savedMap) : {}
+if (savedMap) {
+  console.log('Loading map from local storage. This is only for development use.')
+} else {
+  roomSrc = {}
+}
+
 
 function start () {
   canvas = document.querySelector('canvas')
@@ -30,11 +44,13 @@ function start () {
 }
 
 function loaded () {
+  editor.startEditor(canvas, scale, roomSrc, tileSize, player, storageKey)
   tick()
 }
 
 function tick () {
   updatePlayer()
+  keys.flap = false // special case
   draw()
   requestAnimationFrame(tick)
 }
@@ -103,11 +119,12 @@ function updatePlayer () {
       player.vel.x = 0
     }*/
 
-    if (keys.up) {
-      player.vel.y = -0.4 // If we ever add slopes, we'd want to preserve vertical speed here sometimes.
-      player.vel.y -= Math.abs(player.vel.x / 4)
+    if (keys.flap) {
+      let flapSpeed = -1
+      player.vel.y = Math.min(player.vel.y, 0)
+      player.vel.y += flapSpeed
     }
-    player.vel.y += 0.1
+    player.vel.y += 0.04
 
     // check collisions y
     player.pos.y += player.vel.y
@@ -128,7 +145,8 @@ export const game = {
   start: start
 }
 
-const keys = { up: false, left: false, right: false, down: false, cheat: false }
+// flap is a special case, only actiates on hit
+const keys = { up: false, left: false, right: false, down: false, cheat: false, flap: false }
 
 function switchKey (key, state) {
 
@@ -143,13 +161,14 @@ function switchKey (key, state) {
       break
     case 'ArrowUp':
     case 'w':
-    case ' ':
       keys.up = state
       break
     case 'ArrowDown':
     case 's':
       keys.down = state
       break
+    case ' ':
+      if (state === true) keys.flap = state
     case 'q':
       keys.cheat = state
       break
