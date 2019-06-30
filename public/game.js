@@ -33,6 +33,8 @@ const checkpoints = [
   {id: 0, x: 25.5, y: 23.5},
 ]
 
+const particles = []
+
 const groundXVel = 1
 const skyXVel = 3
 const xAccel = 0.1
@@ -78,16 +80,41 @@ function loaded () {
 function tick () {
   frame = (++frame % 3600)
   updatePlayer()
+  updateParticles()
   keys.flap = false // special case
   draw()
   requestAnimationFrame(tick)
 }
 
+function updateParticles () {
+  for (let bit of particles) {
+    bit.x += bit.xVel
+    bit.y += bit.yVel
+    bit.age++
+  }
+  filterInPlace(particles, bit => bit.age < 60 * 5)
+
+}
+
+//https://stackoverflow.com/questions/37318808/what-is-the-in-place-alternative-to-array-prototype-filter
+function filterInPlace(a, condition) {
+  let i = 0, j = 0;
+
+  while (i < a.length) {
+    const val = a[i];
+    if (condition(val, i, a)) a[j++] = val;
+    i++;
+  }
+
+  a.length = j;
+  return a;
+}
 
 function draw () {
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   drawLevel()
   drawPlayer()
+  particles.forEach(p => drawCheckpoint(p, false, true))
 }
 
 function drawPlayer() {
@@ -153,8 +180,8 @@ function drawLevel () {
   }
 }
 
-function drawCheckpoint (pos, isVacant) {
-  let anim = Math.floor(frame / 12) % 4
+function drawCheckpoint (pos, isVacant, isFast = false) {
+  let anim = Math.floor(frame / (isFast ? 6 : 12)) % 4
   if (anim === 3) anim = 1
   if (isVacant) anim = 3
   const sprite = 8 + anim
@@ -242,7 +269,12 @@ function updatePlayer () {
     if (isTouching) {
       player.checkpoints = {}
       for (let bit of player.trail) {
-        
+        particles.push(bit)
+        bit.age = 0
+        bit.xVel *= 2
+        bit.yVel *= 2
+        bit.xVel += (Math.random() - 0.5) * 4
+        bit.yVel += (Math.random() - 0.5) * 4
       }
       player.trail.length = 0
     }
