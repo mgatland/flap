@@ -7,16 +7,14 @@ let world
 let camera
 
 function rleEncode (level) {
-  return level
-  /*
   const out = []
-  let prev = null
+  let prev = undefined
   let amount = 0
   for (const val of level) {
     if (val === prev) {
       amount++
     } else {
-      if (prev !== null) {
+      if (prev !== undefined) {
         out.push(prev)
         out.push(amount)
       }
@@ -26,11 +24,11 @@ function rleEncode (level) {
   }
   out.push(prev)
   out.push(amount)
-  return out*/
+  return out
 }
 
 function rleDecode (levelData) {
-  /*
+  
   const pairs = levelData.reduce((result, value, index, array) => {
     if (index % 2 === 0) {
       result.push(array.slice(index, index + 2))
@@ -43,8 +41,7 @@ function rleDecode (levelData) {
       level.push(val[0])
     }
   }
-  return level*/
-  return levelData
+  return level
 }
 
 function saveLevelString (world) {
@@ -100,13 +97,13 @@ export const editor = {
 
     const brushes = {
       '1': 1,
-      '2': 9,
-      '3': 10,
-      '4': 11,
-      '5': 12,
-      '6': 7,
-      '7': 14,
-      '8': 8,
+      '2': 6,
+      '3': 7,
+      '4': 1,
+      '5': 1,
+      '6': 1,
+      '7': 1,
+      '8': 1,
     }
 
     window.addEventListener('keydown', function (e) {
