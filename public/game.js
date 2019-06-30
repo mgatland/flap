@@ -13,7 +13,8 @@ const player = {
   vel: { x: 0, y: 0 },
   facingLeft: false,
   checkpoints: {},
-  trail: []
+  trail: [],
+  megaBird: false
 }
 
 const camera = {
@@ -91,7 +92,25 @@ function updateParticles () {
     bit.x += bit.xVel
     bit.y += bit.yVel
     bit.age++
+
+    //fireworks hack
+    if (bit.type === 'firework0' && bit.age === 7) {
+      bit.age = 9999
+      const density = 7
+      for (let i = 0; i < density; i++) {
+        const p = {x: bit.x, y: bit.y, age: 0, type: "firework1"}
+        const angle = i / density * Math.PI * 2
+        const force = 1
+        p.xVel = force * Math.cos(angle)
+        p.yVel = force * Math.sin(angle)
+        particles.push(p)
+      }
+    }
+    if (bit.type === 'firework1' && bit.age === 30) {
+      bit.age = 9999
+    }
   }
+
   filterInPlace(particles, bit => bit.age < 60 * 5)
 
 }
@@ -112,9 +131,16 @@ function filterInPlace(a, condition) {
 
 function draw () {
   ctx.fillRect(0, 0, canvas.width, canvas.height)
+  
   drawLevel()
+  particles.forEach(p => drawParticle(p, false, true))
   drawPlayer()
-  particles.forEach(p => drawCheckpoint(p, false, true))
+}
+
+function drawParticle(p) {
+  if (p.type === 'ring') drawCheckpoint(p, false, true)
+  if (p.type === 'firework0') drawSprite(16, p.x, p.y)
+  if (p.type === 'firework1') drawSprite(17, p.x, p.y)
 }
 
 function drawPlayer() {
@@ -137,8 +163,8 @@ function drawPlayer() {
 }
 
 function drawSprite (index, x, y, flipped = false) {
-  const width = tileSize
-  const height = tileSize
+  let width = tileSize
+  let height = tileSize
   x = Math.floor((x - camera.pos.x) * scale)
   y = Math.floor((y - camera.pos.y) * scale)
   x += Math.floor(canvas.width / 2)
@@ -146,8 +172,18 @@ function drawSprite (index, x, y, flipped = false) {
   ctx.translate(x, y)
   if (flipped) ctx.scale(-1, 1)
 
-  const sX = (index % 8) * width
-  const sY = Math.floor(index / 8) * height
+  let sX = (index % 8) * width
+  let sY = Math.floor(index / 8) * height
+
+  //hack for small sprites
+  if (index >= 16) {
+    const smolIndex = index - 16
+    width /= 2
+    height /= 2
+    sX = smolIndex * width
+    sY = 32
+  }
+
   ctx.drawImage(spriteImage,
     sX, sY,
     width, height,
@@ -262,7 +298,22 @@ function updatePlayer () {
     if (distSqr < close && !player.checkpoints[checkpoint.id]) {
       player.checkpoints[checkpoint.id] = true
       player.trail.push({x: checkpoint.x * tileSize, y: checkpoint.y * tileSize, xVel: 0, yVel: 0})
+
+      //Did I win?
+      if (checkpoints.every(cp => player.checkpoints[cp.id])) {
+        console.log('you just won the game')
+        player.megaBird = true
+      }
     }
+  }
+
+  if (player.megaBird && frame % 10 === 0) {
+    const p = {x: player.pos.x, y: player.pos.y, age: 0, type: "firework0"}
+    const angle = (frame / 10) / 12 * Math.PI * 2
+    const force = 1.4
+    p.xVel = force * Math.cos(angle)
+    p.yVel = force * Math.sin(angle)
+    particles.push(p)
   }
 
   if (player.trail.length > 0) {
@@ -270,6 +321,7 @@ function updatePlayer () {
       player.checkpoints = {}
       for (let bit of player.trail) {
         particles.push(bit)
+        bit.type = "ring"
         bit.age = 0
         bit.xVel *= 2
         bit.yVel *= 2

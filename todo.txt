@@ -10,9 +10,9 @@ proposed game mechanic:
 
 [x] you gotta touch 10 checkpoints without touching the ground
 [x] each checkpoint gives you a ring that follows you
-[ ] if you touch the ground the rights all spill out in random directions
-[ ] if you get all 10 checkpoints you win yay!
-[ ] you become megabird, who leaves a trail of fireworks!
+[x] if you touch the ground the rings all spill out in random directions
+[x] if you get all 10 checkpoints you win yay!
+[x] you become megabird, who leaves a trail of fireworks!
 [x] checkpoints change visually once collected
 [no] bonus: an enemy who chases yoo
 [ ] bonus: see other players in multiplayer
