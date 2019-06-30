@@ -7,6 +7,8 @@ let world
 let camera
 
 function rleEncode (level) {
+  return level
+  /*
   const out = []
   let prev = null
   let amount = 0
@@ -24,10 +26,11 @@ function rleEncode (level) {
   }
   out.push(prev)
   out.push(amount)
-  return out
+  return out*/
 }
 
 function rleDecode (levelData) {
+  /*
   const pairs = levelData.reduce((result, value, index, array) => {
     if (index % 2 === 0) {
       result.push(array.slice(index, index + 2))
@@ -40,7 +43,8 @@ function rleDecode (levelData) {
       level.push(val[0])
     }
   }
-  return level
+  return level*/
+  return levelData
 }
 
 function saveLevelString (world) {
@@ -77,6 +81,7 @@ export const editor = {
       pos.y += camera.pos.y - canvas.height / 2 / scale
       const tile = { x: Math.floor(pos.x / tileSize), y: Math.floor(pos.y / tileSize) }
       const i = tile.x + tile.y * world.width
+      if (tile.x < 0 || tile.y < 0 || tile.x >= world.width || tile.y >= world.height) return
       if (e.buttons === 1) {
         world.map[i] = brush
         saveLevelString(world)

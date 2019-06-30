@@ -20,8 +20,8 @@ const maxXVel = 2
 const xAccel = 0.1
 const xDecel = 0.05
 
-const scale = 8
-const tileSize = 8
+const scale = 4
+const tileSize = 16
 let canvas
 let ctx
 let spriteImage
@@ -33,7 +33,7 @@ if (savedMap) {
   console.log(world.map)
   console.log('Loading map from local storage. This is only for development use.')
 } else {
-  world = {width: 10, height: 10, map: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10]}
+  world = {width: 50, height: 50, map: [1,0,1,0]}
 }
 
 
@@ -71,12 +71,20 @@ function draw () {
 }
 
 function drawPlayer() {
-  drawSprite(2, player.pos.x, player.pos.y, player.facingLeft)
+  let sprite
+  if (player.flapAnim < 1) {
+    sprite = 2
+  } else if (player.flapAnim < 4) {
+    sprite = 3
+  } else {
+    sprite = 4
+  }
+  drawSprite(sprite, player.pos.x, player.pos.y, player.facingLeft)
 }
 
 function drawSprite (index, x, y, flipped = false) {
-  const width = 8
-  const height = 8
+  const width = tileSize
+  const height = tileSize
   x = Math.floor((x - camera.pos.x) * scale)
   y = Math.floor((y - camera.pos.y) * scale)
   x += Math.floor(canvas.width / 2)
@@ -101,7 +109,7 @@ function drawLevel () {
     const x = (i % world.width) + 0.5
     const y = Math.floor(i / world.width) + 0.5
     const sprite = level[i]
-    drawSprite(sprite, x * tileSize, y * tileSize)
+    if (sprite !== 0) drawSprite(sprite, x * tileSize, y * tileSize)
   }
 }
 
@@ -126,10 +134,13 @@ function updatePlayer () {
     player.vel.x = 0
   }
 
+  if (!keys.jump) player.flapAnim++
+
   if (keys.flap) {
     let flapSpeed = -1
     player.vel.y = Math.min(player.vel.y, 0)
     player.vel.y += flapSpeed
+    player.flapAnim = 0
   }
   player.vel.y += 0.04
 
@@ -155,7 +166,7 @@ export const game = {
 }
 
 // flap is a special case, only actiates on hit
-const keys = { up: false, left: false, right: false, down: false, cheat: false, flap: false }
+const keys = { up: false, left: false, right: false, down: false, cheat: false, jump: false, flap: false }
 
 function switchKey (key, state) {
 
@@ -177,7 +188,9 @@ function switchKey (key, state) {
       keys.down = state
       break
     case ' ':
-      if (state === true) keys.flap = state
+      //we check keys.jump to prevent keyboard repeat)
+      if (state === true && !keys.jump) keys.flap = state
+      keys.jump = state
     case 'q':
       keys.cheat = state
       break
