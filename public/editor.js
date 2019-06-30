@@ -4,6 +4,7 @@ let storageKey = 'temp'
 let tileSize
 let player
 let world
+let camera
 
 function rleEncode (level) {
   const out = []
@@ -57,11 +58,12 @@ function saveLevelString (world) {
 let brush = 1
 
 export const editor = {
-  startEditor: function startEditor (canvas, scale, newWorld, newTileSize, newPlayer, newStorageKey) {
+  startEditor: function startEditor (canvas, scale, newWorld, newTileSize, newPlayer, newStorageKey, newCamera) {
     storageKey = newStorageKey
     player = newPlayer
     tileSize = newTileSize
     world = newWorld
+    camera = newCamera
     function getMouseXYFromEvent (e) {
       const x = event.offsetX * canvas.width / canvas.offsetWidth / scale
       const y = event.offsetY * canvas.height / canvas.offsetHeight / scale
@@ -71,6 +73,8 @@ export const editor = {
     function mouseMove (e) {
       if (!window.editMode) return
       const pos = getMouseXYFromEvent(e)
+      pos.x += camera.pos.x - canvas.width / 2 / scale
+      pos.y += camera.pos.y - canvas.height / 2 / scale
       const tile = { x: Math.floor(pos.x / tileSize), y: Math.floor(pos.y / tileSize) }
       const i = tile.x + tile.y * world.width
       if (e.buttons === 1) {

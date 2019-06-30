@@ -52,7 +52,7 @@ function start () {
 }
 
 function loaded () {
-  editor.startEditor(canvas, scale, world, tileSize, player, storageKey)
+  editor.startEditor(canvas, scale, world, tileSize, player, storageKey, camera)
   tick()
 }
 
