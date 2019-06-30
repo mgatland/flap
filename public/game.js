@@ -16,7 +16,8 @@ const camera = {
   pos: {x: player.pos.x, y: player.pos.y}
 }
 
-const maxXVel = 2
+const groundXVel = 1
+const skyXVel = 3
 const xAccel = 0.1
 const xDecel = 0.05
 
@@ -125,8 +126,21 @@ function drawLevel () {
 }
 
 function updatePlayer () {
-  if (keys.right && player.vel.x < maxXVel) player.vel.x += xAccel
-  else if (keys.left && player.vel.x > -maxXVel) player.vel.x -= xAccel
+  const maxXVel = isGrounded(player) ? groundXVel : skyXVel
+  if (keys.right) {
+    if (player.vel.x < maxXVel) {
+      player.vel.x += xAccel
+    } else {
+      player.vel.x -= Math.min(player.vel.x - maxXVel, xDecel)
+    }
+  }
+  else if (keys.left) {
+    if (player.vel.x > -maxXVel) {
+      player.vel.x -= xAccel
+    } else {
+      player.vel.x += Math.min(-player.vel.x - maxXVel, xDecel)
+    }
+  }
   else if (!keys.left && player.vel.x < 0 && isGrounded(player)) player.vel.x += Math.min(-player.vel.x, xDecel)
   else if (!keys.right && player.vel.x > 0 && isGrounded(player)) player.vel.x -= Math.min(player.vel.x, xDecel)
 
