@@ -1,20 +1,37 @@
 "use strict"
 
-window.editMode = true
+window.editMode = false
 
 import { editor } from './editor.js'
 
 const storageKey = 'github.com/mgatland/flap/map'
 
+let frame = 0
+
 const player = {
-  pos: { x: 16, y: 44 },
+  pos: { x: 90, y: 50 },
   vel: { x: 0, y: 0 },
-  facingLeft: false
+  facingLeft: false,
+  checkpoints: {},
+  trail: []
 }
 
 const camera = {
   pos: {x: player.pos.x, y: player.pos.y}
 }
+
+const checkpoints = [
+  {id: 1, x: 3.5, y: 3.5},
+  {id: 2, x: 21.5, y: 5.5},
+  {id: 3, x: 33.5, y: 2.5},
+  {id: 4, x: 45.5, y: 12.5},
+  {id: 5, x: 36.5, y: 42.5},
+  {id: 6, x: 36.5, y: 36.5},
+  {id: 7, x: 18.5, y: 45.5},
+  {id: 8, x: 3.5, y: 42.5},
+  {id: 9, x: 18.5, y: 36.5},
+  {id: 0, x: 25.5, y: 23.5},
+]
 
 const groundXVel = 1
 const skyXVel = 3
@@ -41,12 +58,12 @@ world.map = editor.rleDecode(world.map)
 
 function start () {
   canvas = document.querySelector('canvas')
-  ctx = canvas.getContext('2d')
+  ctx = canvas.getContext('2d', { alpha: false })
   ctx.imageSmoothingEnabled = false
   const defaultFont = "16px 'uni 05_64'"
   const titleFont = "32px 'uni 05_64'"
   ctx.font = defaultFont
-  ctx.fillStyle = 'black'
+  ctx.fillStyle = '#ccc'
   ctx.baseLine = 'bottom'
   spriteImage = new Image()
   spriteImage.src = 'sprites.png'
@@ -59,6 +76,7 @@ function loaded () {
 }
 
 function tick () {
+  frame = (++frame % 3600)
   updatePlayer()
   keys.flap = false // special case
   draw()
@@ -67,12 +85,17 @@ function tick () {
 
 
 function draw () {
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
   drawLevel()
   drawPlayer()
 }
 
 function drawPlayer() {
+
+  for (let bit of player.trail) {
+    drawCheckpoint(bit, false)     
+   }
+
   let sprite
   if (player.flapAnim < 1) {
     sprite = 2
@@ -82,6 +105,8 @@ function drawPlayer() {
     sprite = 4
   }
   drawSprite(sprite, player.pos.x, player.pos.y, player.facingLeft)
+  ctx.strokeText(Math.floor(player.pos.x / tileSize) + ":" + Math.floor(player.pos.y / tileSize), 40, 40)
+
 }
 
 function drawSprite (index, x, y, flipped = false) {
@@ -94,8 +119,8 @@ function drawSprite (index, x, y, flipped = false) {
   ctx.translate(x, y)
   if (flipped) ctx.scale(-1, 1)
 
-  const sX = (index % 16) * width
-  const sY = Math.floor(index / 16) * height
+  const sX = (index % 8) * width
+  const sY = Math.floor(index / 8) * height
   ctx.drawImage(spriteImage,
     sX, sY,
     width, height,
@@ -123,10 +148,22 @@ function drawLevel () {
       drawSprite(sprite, x * tileSize, y * tileSize)
     }
   }
+  for (let checkpoint of checkpoints) {
+    drawCheckpoint({ x: checkpoint.x * tileSize, y: checkpoint.y * tileSize }, player.checkpoints[checkpoint.id])
+  }
+}
+
+function drawCheckpoint (pos, isVacant) {
+  let anim = Math.floor(frame / 12) % 4
+  if (anim === 3) anim = 1
+  if (isVacant) anim = 3
+  const sprite = 8 + anim
+  drawSprite(sprite, pos.x, pos.y)
 }
 
 function updatePlayer () {
-  const maxXVel = isGrounded(player) ? groundXVel : skyXVel
+  let grounded = isGrounded(player)
+  const maxXVel = grounded ? groundXVel : skyXVel
   if (keys.right) {
     if (player.vel.x < maxXVel) {
       player.vel.x += xAccel
@@ -141,17 +178,20 @@ function updatePlayer () {
       player.vel.x += Math.min(-player.vel.x - maxXVel, xDecel)
     }
   }
-  else if (!keys.left && player.vel.x < 0 && isGrounded(player)) player.vel.x += Math.min(-player.vel.x, xDecel)
-  else if (!keys.right && player.vel.x > 0 && isGrounded(player)) player.vel.x -= Math.min(player.vel.x, xDecel)
+  else if (!keys.left && player.vel.x < 0 && grounded) player.vel.x += Math.min(-player.vel.x, xDecel)
+  else if (!keys.right && player.vel.x > 0 && grounded) player.vel.x -= Math.min(player.vel.x, xDecel)
 
   if (keys.left) player.facingLeft = true
   if (keys.right) player.facingLeft = false
+
+  let isTouching = grounded
 
   // check collisions x
   player.pos.x += player.vel.x
 
   const collidingTile = getCollidingTiles(player.pos)
   if (collidingTile !== null) {
+    isTouching = true
     const clearTileIndex = getIndexFromPixels(collidingTile.x, collidingTile.y) +
       (player.vel.x < 0 ? 1 : -1) // move player one tile left or right
     const { x: clearX } = getPixelsFromIndex(clearTileIndex)
@@ -175,6 +215,7 @@ function updatePlayer () {
 
   const collidingTileY = getCollidingTiles(player.pos)
   if (collidingTileY !== null) {
+    isTouching = true
     const clearTileIndex = getIndexFromPixels(collidingTileY.x, collidingTileY.y) +
       (player.vel.y < 0 ? world.width : -world.width) // move player one tile up or down
     const { y: clearY } = getPixelsFromIndex(clearTileIndex)
@@ -184,6 +225,54 @@ function updatePlayer () {
 
   camera.pos.x = player.pos.x
   camera.pos.y = player.pos.y
+
+  //checkpoints
+  for (let checkpoint of checkpoints) {
+    const xDist = Math.abs(player.pos.x - checkpoint.x * tileSize)
+    const yDist = Math.abs(player.pos.y - checkpoint.y * tileSize)
+    const distSqr =  xDist * xDist + yDist * yDist
+    const close = (tileSize) * (tileSize)
+    if (distSqr < close && !player.checkpoints[checkpoint.id]) {
+      player.checkpoints[checkpoint.id] = true
+      player.trail.push({x: checkpoint.x * tileSize, y: checkpoint.y * tileSize, xVel: 0, yVel: 0})
+    }
+  }
+
+  if (player.trail.length > 0) {
+    if (isTouching) {
+      player.checkpoints = {}
+      for (let bit of player.trail) {
+        
+      }
+      player.trail.length = 0
+    }
+    else {
+      let pos = {... player.pos}
+      for (let bit of player.trail) {
+        const dist = getDist(bit, pos)
+        const angle = getAngle(bit, pos)
+        const force = 0.1 * dist
+        bit.xVel = force * Math.cos(angle)
+        bit.yVel = force * Math.sin(angle)
+        pos.x = bit.x
+        pos.y = bit.y
+        bit.x += bit.xVel
+        bit.y += bit.yVel
+      }
+    }
+  }
+
+}
+
+function getDist(pos1, pos2) {
+  const xDist = pos1.x - pos2.x
+  const yDist = pos1.y - pos2.y
+  const dist = Math.sqrt(xDist * xDist + yDist * yDist)
+  return dist
+}
+
+function getAngle(pos1, pos2) {
+  return Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x)
 }
 
 export const game = {

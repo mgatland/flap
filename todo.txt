@@ -1,5 +1,18 @@
-1. display level geometry
-2. level editor
-3. collisions with player
-4. camera follows the player
+[x] 1. display level geometry
+[x] 2. level editor
+[x] 3. collisions with player
+[x] 4. camera follows the player
 5. see other players
+
+-----
+
+proposed game mechanic:
+
+[x] you gotta touch 10 checkpoints without touching the ground
+[x] each checkpoint gives you a ring that follows you
+if you touch the ground the rights all spill out in random directions
+if you get all 10 checkpoints you win yay!
+[x] checkpoints change visually once collected
+
+bonus: an enemy who chases yoo
+bonus: see other players in multiplayer
