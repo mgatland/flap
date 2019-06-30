@@ -7,17 +7,28 @@ server.listen(8080)
 app.use('/', express.static(path.join(__dirname, 'public')))
 
 const WebSocket = require('ws')
- 
+
+const players = {}
+let nextId = 0
+
 const wss = new WebSocket.Server({server})
 
 wss.on('connection', function connection(ws) {
+  const id = nextId++
   ws.on('message', function incoming(data) {
-    console.log('on a message')
-    console.log(data);
+    players[""+id] = data
   })
-  ws.send('yo')
 })
 
 app.get('/playerCount', function (req, res) {
   res.send("" + wss.clients.size)
 })
+
+function netUpdate() {
+  //console.log(JSON.stringify(players))
+  wss.clients.forEach(function each(client) {
+    client.send(JSON.stringify(players))
+ });
+}
+
+setInterval(netUpdate, 32)

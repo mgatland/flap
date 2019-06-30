@@ -29,13 +29,14 @@ function connect () {
   }
   ws.onopen = function() {
     showMessage('WebSocket connection established')
-    game.start()
+    const sendFunc = x => ws.send(x)
+    game.start(sendFunc)
   }
   ws.onclose = function() {
     showMessage('WebSocket connection closed')
   }
   ws.onmessage = function (msg) {
-    console.log(msg.data)
+    game.onMessage(JSON.parse(msg.data))
   }
 } 
 

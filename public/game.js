@@ -7,6 +7,8 @@ import { editor } from './editor.js'
 const storageKey = 'github.com/mgatland/flap/map'
 
 let frame = 0
+let send = undefined
+let netState = {}
 
 const player = {
   pos: { x: 90, y: 50 },
@@ -59,7 +61,7 @@ if (savedMap) {
 world.map = editor.rleDecode(world.map)
 
 
-function start () {
+function start (sendFunc) {
   canvas = document.querySelector('canvas')
   ctx = canvas.getContext('2d', { alpha: false })
   ctx.imageSmoothingEnabled = false
@@ -71,6 +73,7 @@ function start () {
   spriteImage = new Image()
   spriteImage.src = 'sprites.png'
   spriteImage.addEventListener('load', loaded, false)
+  send = sendFunc
 }
 
 function loaded () {
@@ -134,7 +137,8 @@ function draw () {
   
   drawLevel()
   particles.forEach(p => drawParticle(p, false, true))
-  drawPlayer()
+  drawPlayer(player)
+  Object.values(netState).forEach(netP => drawPlayer(JSON.parse(netP)))
 }
 
 function drawParticle(p) {
@@ -143,7 +147,7 @@ function drawParticle(p) {
   if (p.type === 'firework1') drawSprite(17, p.x, p.y)
 }
 
-function drawPlayer() {
+function drawPlayer(player) {
 
   for (let bit of player.trail) {
     drawCheckpoint(bit, false)     
@@ -158,7 +162,7 @@ function drawPlayer() {
     sprite = 4
   }
   drawSprite(sprite, player.pos.x, player.pos.y, player.facingLeft)
-  ctx.strokeText(Math.floor(player.pos.x / tileSize) + ":" + Math.floor(player.pos.y / tileSize), 40, 40)
+  //ctx.strokeText(Math.floor(player.pos.x / tileSize) + ":" + Math.floor(player.pos.y / tileSize), 40, 40)
 
 }
 
@@ -345,7 +349,7 @@ function updatePlayer () {
       }
     }
   }
-
+  send(JSON.stringify(player))
 }
 
 function getDist(pos1, pos2) {
@@ -359,12 +363,17 @@ function getAngle(pos1, pos2) {
   return Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x)
 }
 
+function onMessage (msg) {
+  netState = msg
+}
+
 export const game = {
-  start: start
+  start: start,
+  onMessage: onMessage
 }
 
 // flap is a special case, only actiates on hit
-const keys = { up: false, left: false, right: false, down: false, cheat: false, jump: false, flap: false }
+const keys = { left: false, right: false, cheat: false, jump: false, flap: false }
 
 function switchKey (key, state) {
 
@@ -379,12 +388,6 @@ function switchKey (key, state) {
       break
     case 'ArrowUp':
     case 'w':
-      keys.up = state
-      break
-    case 'ArrowDown':
-    case 's':
-      keys.down = state
-      break
     case ' ':
       //we check keys.jump to prevent keyboard repeat)
       if (state === true && !keys.jump) keys.flap = state
