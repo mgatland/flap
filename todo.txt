@@ -18,9 +18,9 @@ proposed game mechanic:
 [ ] bonus: see other players in multiplayer
   [x] don't see yourself!
   [x] remove disconnected players
-  [ ] dropped coins work
-  [ ] megaBird particles work
-  [ ] smooth movement
+  [?] smooth movement
+  [x] megaBird particles work
+  [no time!!!] dropped coins work
   [ ] use less bandwidth
 [ ] better megaBird
 [ ] release emails

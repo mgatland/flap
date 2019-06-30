@@ -1,5 +1,6 @@
 "use strict"
 
+let debugMode = false
 window.editMode = false
 
 import { editor } from './editor.js'
@@ -84,7 +85,12 @@ function loaded () {
 
 function tick () {
   frame = (++frame % 3600)
-  updatePlayer()
+  updatePlayer(player, keys)
+  for (let id in netState) {
+    if (id != localId || debugMode) {
+      updatePlayer(netState[id], false)
+    }
+  }
   updateParticles()
   keys.flap = false // special case
   draw()
@@ -138,10 +144,10 @@ function draw () {
   
   drawLevel()
   particles.forEach(p => drawParticle(p, false, true))
-  drawPlayer(player)
+  if (!debugMode) drawPlayer(player)
   for (let id in netState) {
-    if (id != localId) {
-      drawPlayer(JSON.parse(netState[id]))
+    if (id != localId || debugMode) {
+      drawPlayer(netState[id])
     }
   }
 }
@@ -233,7 +239,8 @@ function drawCheckpoint (pos, isVacant, isFast = false) {
   drawSprite(sprite, pos.x, pos.y)
 }
 
-function updatePlayer () {
+function updatePlayer (player, isLocal) {
+  const keys = player.keys
   let grounded = isGrounded(player)
   const maxXVel = grounded ? groundXVel : skyXVel
   if (keys.right) {
@@ -284,7 +291,6 @@ function updatePlayer () {
   // check collisions y
   player.pos.y += player.vel.y
   
-
   const collidingTileY = getCollidingTiles(player.pos)
   if (collidingTileY !== null) {
     isTouching = true
@@ -295,23 +301,25 @@ function updatePlayer () {
     player.vel.y = 0
   }
 
-  camera.pos.x = player.pos.x
-  camera.pos.y = player.pos.y
+  if (isLocal) {
+    camera.pos.x = player.pos.x
+    camera.pos.y = player.pos.y
 
-  //checkpoints
-  for (let checkpoint of checkpoints) {
-    const xDist = Math.abs(player.pos.x - checkpoint.x * tileSize)
-    const yDist = Math.abs(player.pos.y - checkpoint.y * tileSize)
-    const distSqr =  xDist * xDist + yDist * yDist
-    const close = (tileSize) * (tileSize)
-    if (distSqr < close && !player.checkpoints[checkpoint.id]) {
-      player.checkpoints[checkpoint.id] = true
-      player.trail.push({x: checkpoint.x * tileSize, y: checkpoint.y * tileSize, xVel: 0, yVel: 0})
+    //checkpoints
+    for (let checkpoint of checkpoints) {
+      const xDist = Math.abs(player.pos.x - checkpoint.x * tileSize)
+      const yDist = Math.abs(player.pos.y - checkpoint.y * tileSize)
+      const distSqr =  xDist * xDist + yDist * yDist
+      const close = (tileSize) * (tileSize)
+      if (distSqr < close && !player.checkpoints[checkpoint.id]) {
+        player.checkpoints[checkpoint.id] = true
+        player.trail.push({x: checkpoint.x * tileSize, y: checkpoint.y * tileSize, xVel: 0, yVel: 0})
 
-      //Did I win?
-      if (checkpoints.every(cp => player.checkpoints[cp.id])) {
-        console.log('you just won the game')
-        player.megaBird = true
+        //Did I win?
+        if (checkpoints.every(cp => player.checkpoints[cp.id])) {
+          console.log('you just won the game')
+          player.megaBird = true
+        }
       }
     }
   }
@@ -325,36 +333,44 @@ function updatePlayer () {
     particles.push(p)
   }
 
-  if (player.trail.length > 0) {
-    if (isTouching) {
-      player.checkpoints = {}
-      for (let bit of player.trail) {
-        particles.push(bit)
-        bit.type = "ring"
-        bit.age = 0
-        bit.xVel *= 2
-        bit.yVel *= 2
-        bit.xVel += (Math.random() - 0.5) * 4
-        bit.yVel += (Math.random() - 0.5) * 4
-      }
-      player.trail.length = 0
+  if (player.lostCoins) {
+    player.checkpoints = {}
+    console.log('coins lost: ' + player.trail.length)
+    for (let bit of player.trail) {
+      particles.push(bit)
+      bit.type = "ring"
+      bit.age = 0
+      bit.xVel *= 2
+      bit.yVel *= 2
+      bit.xVel += (Math.random() - 0.5) * 4
+      bit.yVel += (Math.random() - 0.5) * 4
     }
-    else {
-      let pos = {... player.pos}
-      for (let bit of player.trail) {
-        const dist = getDist(bit, pos)
-        const angle = getAngle(bit, pos)
-        const force = 0.1 * dist
-        bit.xVel = force * Math.cos(angle)
-        bit.yVel = force * Math.sin(angle)
-        pos.x = bit.x
-        pos.y = bit.y
-        bit.x += bit.xVel
-        bit.y += bit.yVel
+    player.trail.length = 0
+  }
+  delete player.lostCoins
+
+  if (isLocal) {
+    if (player.trail.length > 0) {
+      if (isTouching) {
+        player.lostCoins = true //for network updates
       }
     }
   }
-  send(JSON.stringify(player))
+  if (player.trail.length > 0) {
+    let pos = {... player.pos}
+    for (let bit of player.trail) {
+      const dist = getDist(bit, pos)
+      const angle = getAngle(bit, pos)
+      const force = 0.1 * dist
+      bit.xVel = force * Math.cos(angle)
+      bit.yVel = force * Math.sin(angle)
+      pos.x = bit.x
+      pos.y = bit.y
+      bit.x += bit.xVel
+      bit.y += bit.yVel
+    }
+  }
+  if (isLocal) send(JSON.stringify(player))
 }
 
 function getDist(pos1, pos2) {
@@ -369,11 +385,22 @@ function getAngle(pos1, pos2) {
 }
 
 function onMessage (msg) {
-  if (msg.id !== undefined) {
+  if (msg.type === 'events') {
+    for (let event of msg.data) {
+      let id = event.id
+      if (netState[id]) {
+        netState[id].lostCoins = true
+      }
+    }
+  }
+  else if (msg.id !== undefined) {
     localId = msg.id
     console.log('got local id: ' + localId)
   } else {
     netState = msg
+    for (const id in netState) {
+      //netState[id] = JSON.parse(netState[id])
+    }
   }
 }
 
@@ -384,6 +411,9 @@ export const game = {
 
 // flap is a special case, only actiates on hit
 const keys = { left: false, right: false, cheat: false, jump: false, flap: false }
+
+//hacks!
+player.keys = keys
 
 function switchKey (key, state) {
 
