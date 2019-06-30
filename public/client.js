@@ -23,7 +23,9 @@ function connect () {
     ws.close()
   }
 
-  ws = new WebSocket(`ws://${location.host}`)
+  const prefix = (location.protocol === 'https:') ? 'wss' : 'ws'
+
+  ws = new WebSocket(`${prefix}://${location.host}`)
   ws.onerror = function() {
     showMessage('WebSocket error')
   }
