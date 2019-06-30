@@ -106,11 +106,21 @@ function drawSprite (index, x, y, flipped = false) {
 
 function drawLevel () {
   const level = world.map
-  for (let i = 0; i < level.length; i++) {
-    const x = (i % world.width) + 0.5
-    const y = Math.floor(i / world.width) + 0.5
-    const sprite = level[i]
-    drawSprite(sprite, x * tileSize, y * tileSize)
+  const center = {x: camera.pos.x / tileSize, y: camera.pos.y / tileSize}
+  const halfWidth = canvas.width / 2 / scale / tileSize
+  const halfHeight = canvas.height / 2 / scale / tileSize
+  const minY = Math.floor(center.y - halfHeight)
+  const maxY = Math.floor(center.y + halfHeight + 1)
+  const minX = Math.floor(center.x - halfWidth)
+  const maxX = Math.floor(center.x + halfWidth + 1)
+  for (let tY = minY; tY < maxY; tY++) {
+    for (let tX = minX; tX < maxX; tX++) {
+      const i = tX + tY * world.width
+      const x = (i % world.width) + 0.5
+      const y = Math.floor(i / world.width) + 0.5
+      const sprite = level[i]
+      drawSprite(sprite, x * tileSize, y * tileSize)
+    }
   }
 }
 
