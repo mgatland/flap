@@ -16,5 +16,13 @@ proposed game mechanic:
 [x] checkpoints change visually once collected
 [no] bonus: an enemy who chases yoo
 [ ] bonus: see other players in multiplayer
-  [ ] better megaBird
+  [x] don't see yourself!
+  [x] remove disconnected players
+  [ ] dropped coins work
+  [ ] megaBird particles work
+  [ ] smooth movement
+  [ ] use less bandwidth
+[ ] better megaBird
+[ ] release emails
+[ ] add to my website
 [nah] bonus: more animated bird

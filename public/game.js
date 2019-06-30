@@ -9,6 +9,7 @@ const storageKey = 'github.com/mgatland/flap/map'
 let frame = 0
 let send = undefined
 let netState = {}
+let localId = undefined
 
 const player = {
   pos: { x: 90, y: 50 },
@@ -138,7 +139,11 @@ function draw () {
   drawLevel()
   particles.forEach(p => drawParticle(p, false, true))
   drawPlayer(player)
-  Object.values(netState).forEach(netP => drawPlayer(JSON.parse(netP)))
+  for (let id in netState) {
+    if (id != localId) {
+      drawPlayer(JSON.parse(netState[id]))
+    }
+  }
 }
 
 function drawParticle(p) {
@@ -364,7 +369,12 @@ function getAngle(pos1, pos2) {
 }
 
 function onMessage (msg) {
-  netState = msg
+  if (msg.id !== undefined) {
+    localId = msg.id
+    console.log('got local id: ' + localId)
+  } else {
+    netState = msg
+  }
 }
 
 export const game = {
