@@ -412,28 +412,33 @@ export const game = {
 // flap is a special case, only actiates on hit
 const keys = { left: false, right: false, cheat: false, jump: false, flap: false }
 
-//hacks!
+// hacks!
 player.keys = keys
 
-function switchKey (key, state) {
-
+function switchKey (e, state) {
+  const key = e.key
   switch (key) {
     case 'ArrowLeft':
     case 'a':
       keys.left = state
+      e.preventDefault()
       break
     case 'ArrowRight':
     case 'd':
       keys.right = state
+      e.preventDefault()
       break
     case 'ArrowUp':
     case 'w':
     case ' ':
-      //we check keys.jump to prevent keyboard repeat)
+      // we check keys.jump to prevent keyboard repeat)
       if (state === true && !keys.jump) keys.flap = state
       keys.jump = state
+      e.preventDefault()
+      break
     case 'q':
       keys.cheat = state
+      e.preventDefault()
       break
   }
 
@@ -444,11 +449,11 @@ function switchKey (key, state) {
 }
 
 window.addEventListener('keydown', function (e) {
-  switchKey(e.key, true)
+  switchKey(e, true)
 })
 
 window.addEventListener('keyup', function (e) {
-  switchKey(e.key, false)
+  switchKey(e, false)
 })
 
 function getIndexFromPixels (x, y) {
