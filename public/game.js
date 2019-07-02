@@ -440,6 +440,9 @@ function switchKey (e, state) {
       keys.cheat = state
       e.preventDefault()
       break
+    case 'ArrowDown':
+      e.preventDefault()
+      break
   }
 
   // hack for cheatmode
